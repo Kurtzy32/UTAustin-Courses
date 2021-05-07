@@ -21,11 +21,10 @@ class UpdateUserForm(forms.Form):
         # Return a "ValidationError(<err msg>)" if something 
         # is wrong
         cleaned_data = super().clean()
-        user_auth = UserXtraAuth.objects.get(username=cleaned_data['update_user_select'])
-        if cleaned_data['update_user_secrecy'] < user_auth.secrecy:
-            raise forms.ValidationError('Cannot reduce user\'s secrecy level') 
+        if cleaned_data['update_user_secrecy'] < UserXtraAuth.objects.get(username=cleaned_data['update_user_select']).secrecy:
+            raise forms.ValidationError("Cannot reduce") 
         if cleaned_data['update_user_secrecy'] > 0 and cleaned_data['update_user_token'] == "":
-            raise forms.ValidationError("Users with secrecy level over 0 need token")
+            raise forms.ValidationError("Need a token")
         return cleaned_data
         
 class CreateNewsForm(forms.Form):
@@ -51,7 +50,7 @@ class CreateNewsForm(forms.Form):
         cleaned_data = super().clean()
 
         if self.user_secrecy > cleaned_data['new_news_secrecy']:
-            raise forms.ValidationError("Secrecy level must be higher than user's secrecy")
+            raise forms.ValidationError("Need a higher secrecy level")
 
 
         return cleaned_data
@@ -64,10 +63,9 @@ class UpdateNewsForm(forms.Form):
     update_news_query   = forms.CharField(label="Update Query", required=False)
     update_news_sources = forms.CharField(label="Update Sources", required=False)
     update_news_secrecy = forms.IntegerField(label="Update Secrecy", required=False)
-    user_secrecy_instance = 0
+    sec_inst = 0
 
-    #def __init__(self, *args, QuerySet = None, **kargs):
-    #def __init__(self, *args, user_secrecy = 0, **kargs):
+    
     def __init__(self, data, secrecy = -1, *args, **kargs):
         super().__init__(*args, **kargs)
         # STUDENT TODO
@@ -85,8 +83,8 @@ class UpdateNewsForm(forms.Form):
             #self.fields['update_news_select'].queryset = QuerySet   
         #self.fields['update_news_select'].queryset = NewsListing.objects.filter(secrecy = user_secrecy)
         self.fields['update_news_select'].queryset = data
-        self.user_secrecy_instance = secrecy
-        #self.user_secrecy_instance = secrecy
+        self.sec_inst = secrecy
+    
     
     def clean(self, user_secrecy=0):
         cleaned_data = super().clean()
@@ -102,8 +100,8 @@ class UpdateNewsForm(forms.Form):
         # is wrong
           
         cleaned_data = super().clean()
-        if cleaned_data["update_news_secrecy"] and cleaned_data["update_news_secrecy"] < self.user_secrecy_instance:
-            raise forms.ValidationError("Secrecy level must be higher than user's secrecy")
+        if cleaned_data["update_news_secrecy"] and cleaned_data["update_news_secrecy"] < self.sec_inst:
+            raise forms.ValidationError("Need a higher secrecy level")
         if cleaned_data["update_news_secrecy"] and cleaned_data["update_news_secrecy"] < user_secrecy:
-            raise forms.ValidationError("Secrecy level must be higher than user's secrecy")
+            raise forms.ValidationError("Need a higher secrecy level")
         return cleaned_data
