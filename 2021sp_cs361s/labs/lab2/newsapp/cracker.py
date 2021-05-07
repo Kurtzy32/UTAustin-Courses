@@ -2,89 +2,53 @@ import sqlite3
 import os
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import sys
-import base64
 from itertools import product
 from string import ascii_lowercase
-
-def main():	
-	numArguments = len(sys.argv)
-	foundPassword = False
-	if numArguments == 2:
-		passwordData = sys.argv[1].split('$')
-		if int(passwordData[1]) != 1:
-			print("Cannot brute-force password in time.")
-		else:
-			decodedPassword = base64.b64decode(passwordData[3])
-			for iteration in range(1, 5):
-				for i in product(ascii_lowercase, repeat = iteration):
-					word = ''.join(i)
-					hashedPass = passwordHash(word, passwordData[2], int(passwordData[1]))
-					if hashedPass == decodedPassword:
-						print('Password cracked: ' + word)
-						foundPassword = True
-			if not foundPassword:
-				print('Password not cracked.')
-
-	else:
-		db = sqlite3.connect('db.sqlite3')
-		cursor = db.cursor()
-		cursor.execute("SELECT * from auth_user")
-		passwordData = cursor.fetchall()
-		commonPasswords = [
-        "123456",
-        "123456789",
-        "qwerty",
-        "password",
-        "1234567",
-        "12345678",
-        "12345",
-        "iloveyou",
-        "111111",
-        "123123",
-        "abc123",
-        "qwerty123",
-        "1q2w3e4r",
-        "admin",
-        "qwertyuiop",
-        "654321",
-        "555555",
-        "lovely",
-        "7777777",
-        "welcome",
-        "888888",
-        "princess",
-        "dragon",
-        "password1",
-        "123qwe"]
-
-		for x in commonPasswords:
-			for password in passwordData:
-				user = password[4]
-				passInfo = password[1].split('$')
-				hashedPass = passwordHash(x, passInfo[2], int(passInfo[1]))
-				if hashedPass == base64.b64decode(passInfo[3]):
-					print(user + "," + x)	
-
-def passwordHash(password, passSalt, iters):
-	saltInBytes = bytes(passSalt, 'ascii')
-	kdf = PBKDF2HMAC(
-		algorithm=hashes.SHA256(),
-		length=32,
-		salt=saltInBytes,
-		iterations=iters,
-	)
-	key = kdf.derive(bytes(password, 'ascii'))
-	kdf = PBKDF2HMAC(
-		algorithm=hashes.SHA256(),
-		length=32,
-		salt=saltInBytes,
-		iterations=iters,
-	)
-	kdf.verify(bytes(password, 'ascii'), key)
-	return key
+import sys
+import base64
 
 
+
+def main():
+	if(len(sys.argv)) != 2:
+		cur= sqlite3.connect('db.sqlite3').cursor()
+		cur.execute("SELECT * from auth_user")
+		p_data = cur.fetchall()
+		PASSWORDS = [
+        	"123456","123456789","qwerty","password","1234567","12345678","12345",
+        	"iloveyou","111111","123123","abc123","qwerty123","1q2w3e4r","admin",
+        	"qwertyuiop","654321","555555","lovely","7777777","welcome","888888",
+        	"princess","dragon","password1","123qwe"]
+		for p in PASSWORDS:
+			for password in p_data:
+				pass_data = password[1].split('$')
+				kdf = PBKDF2HMAC(
+					algorithm = hashes.SHA256(),
+					length = 32,
+					salt = pass_data[2].encode(),
+					iterations = int(pass_data[1]),
+				)
+				if  kdf.derive(p.encode()) == base64.b64decode(pass_data[3]):
+					print(password[4] + "," + p)
+	else: 
+		found = False	
+		pass_data = sys.argv[1].split('$')
+		count = 1
+		while count < 5:
+			for i in product(ascii_lowercase, repeat = count):
+				password = ''.join(i)
+				kdf = PBKDF2HMAC(
+					algorithm=hashes.SHA256(),
+					length=32,
+					salt = pass_data[2].encode(),
+					iterations=int(pass_data[1]),
+				)
+				if kdf.derive(password.encode()) == base64.b64decode(pass_data[3]):
+					print('Password cracked: ' + password)
+					found = True
+			count += 1
+		if found == False:
+			print('Password not cracked.')
 
 if __name__ == "__main__":
 	main()
